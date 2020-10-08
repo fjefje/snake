@@ -1,0 +1,240 @@
+<!DOCTYPE html>
+<html lang="no" style="display: table; margin: auto;">
+<head>
+    <meta charset="UTF-8" content="width=device-width, initial-scale=1.0" name="viewport">
+    <title>Snake</title>
+    <style>
+        body {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            display: table-cell;
+            vertical-align: middle;
+            text-align: center;
+        }
+    </style>
+    <script src="../Script/Common.js"></script>
+    <script src="../Script/Sprite.js"></script>
+</head>
+<body>
+<h2><label for="cvs">Snake</label></h2>
+<canvas id="cvs" height="10" width="10" style="background-color: #fabd04; border: 7px  black solid"></canvas>
+<h4>Press F12 to debug (Chrome and Firefox)</h4>
+<fieldset>
+    <legend>Game Log</legend>
+    <span id="txtLog"></span>
+</fieldset>
+<script>
+    "use strict";
+    //------------------------------------------------------------------------------------------------------------------
+    //------ Variables, Constants and Objects
+    //------------------------------------------------------------------------------------------------------------------
+    const GameBoardSize = {Rows: 20, Cols: 25};
+    const SnakeSheet = {
+        Head: {x: 0, y: 0, w: 38, h: 38, count: 4},
+        Body: {x: 0, y: 38, w: 38, h: 38, count: 6},
+        Tail: {x: 0, y: 76, w: 38, h: 38, count: 4},
+        Bait: {x: 0, y: 114, w: 38, h: 38, count: 1},
+        Play: {x: 0, y: 155, w: 202, h: 202, count: 10, speed: 0.4, loop: -1},
+        Retry: {x: 614, y: 995, w: 169, h: 167, count: 1},
+        Resume: {x: 0, y: 357, w: 202, h: 202, count: 2},
+        Home: {x: 0, y: 357, w: 202, h: 202, count: 1},
+        Number: {x: 0, y: 560, w: 81, h: 87, count: 10},
+        GameOver: {x: 0, y: 647, w: 856, h: 580, count: 1}
+    };
+
+    const mousePos = new TPosition(0, 0);
+    const NewLine = "<br />";
+    const cvs = document.getElementById("cvs");
+    const ctx = cvs.getContext("2d");
+    const txtLog = document.getElementById("txtLog");
+    const imgSheet = new Image();
+
+    const EDirection = {Up: 0, Right: 1, Left: 2, Down: 3};
+    const EGameStatus = {Running: 1, GameOver: 2};
+    let gameStatus = EGameStatus.Running;
+    let hndUpdate = null
+    let snakeHead = null;
+    let snakeTail = null;
+    const gameBoard = [];
+    const CellInfo = {direction: EDirection.Right, bait: null, snake: false};
+
+
+    //------------------------------------------------------------------------------------------------------------------
+    //------ Classes
+    //------------------------------------------------------------------------------------------------------------------
+    function TSnakeHead(){
+        const pos = new TPosition(38*3, 38*10);
+        const spi = SnakeSheet.Head;
+        const sp = new TSprite(imgSheet, spi, pos);
+        let direction = EDirection.Right;
+
+        this.draw = function(){
+            sp.setIndex(direction)
+            sp.draw();
+        }
+
+        this.move = function() {
+            switch (direction) {
+                case EDirection.Right:
+                    pos.x += 38;
+                    break;
+                case EDirection.Left:
+                    pos.x -= 38;
+                    break;
+                case EDirection.Down:
+                    pos.y += 38;
+                    break;
+                case EDirection.Up:
+                    pos.y -= 38;
+                    break;
+            }
+
+            if ((pos.x >= cvs.width) || (pos.x < 0) || (pos.y >= cvs.height) || (pos.y < 0)) {
+                gameStatus = EGameStatus.GameOver;
+            }
+        }
+
+        this.setDirection = function(aDirection){
+            direction = aDirection;
+        }
+    } // End of class TSnakeHead
+
+    function TSnakeTail(){
+        const pos = new TPosition(38*3, 38*10);
+        const spi = SnakeSheet.Tail;
+        const sp = new TSprite(imgSheet, spi, pos);
+        let direction = EDirection.Right;
+
+        this.draw = function(){
+            sp.setIndex(direction)
+            sp.draw();
+        }
+
+        this.move = function() {
+            switch (direction) {
+                case EDirection.Right:
+                    pos.x += 38;
+                    break;
+                case EDirection.Left:
+                    pos.x -= 38;
+                    break;
+                case EDirection.Down:
+                    pos.y += 76;
+                    break;
+                case EDirection.Up:
+                    pos.y -= 76;
+                    break;
+            }
+
+            if ((pos.x >= cvs.width) || (pos.x < 0) || (pos.y >= cvs.height) || (pos.y < 0)) {
+                gameStatus = EGameStatus.GameOver;
+            }
+        }
+    } //End of class TSnakeTail
+    //------------------------------------------------------------------------------------------------------------------
+    //------ Function and Events
+    //------------------------------------------------------------------------------------------------------------------
+    function addLogText(aText) {
+        if (txtLog.innerHTML.length > 0) {
+            txtLog.innerHTML += NewLine;
+        }
+        txtLog.innerHTML += aText;
+    }
+
+    function loadGame() {
+        // Sprite sheet is loaded and game can start!
+        cvs.width = GameBoardSize.Cols * SnakeSheet.Head.w;
+        cvs.height = GameBoardSize.Rows * SnakeSheet.Head.h;
+        cvs.width = GameBoardSize.Cols * SnakeSheet.Tail.w;
+        cvs.height = GameBoardSize.Rows * SnakeSheet.Tail.h;
+        for(let i = 0; i < GameBoardSize.row; i++){
+            const row = [];
+            for(let j = 0; j < GameBoardSize.Cols; j++){
+                row.push(null);
+            }
+            gameBoard.push(row);
+        }
+        snakeHead = new TSnakeHead();
+        snakeTail = new TSnakeTail();
+        newGame()
+    }
+
+// new game
+    function newGame() {
+        snakeHead = new TSnakeHead(10, 5);
+        snakeTail = new TSnakeTail(10, 5);
+        hndUpdate = window.setInterval(drawGame, 300);
+        Object.create(CellInfo);
+        drawGame();
+    }
+
+
+    function drawGame() {
+        snakeHead.move();
+        snakeTail.move();
+        if(gameStatus === EGameStatus.GameOver){
+            window.clearInterval(hndUpdate);
+            addLogText("Game Over!");
+            return;
+        }
+        ctx.clearRect(0,0, cvs.width, cvs.height);
+        snakeHead.draw();
+        snakeTail.draw();
+    }
+
+
+// Controller
+    function cvsKeydown(aEvent) {
+        switch (aEvent.key) {
+            case "ArrowLeft":
+                snakeHead.setDirection(EDirection.Left);
+                break;
+            case "ArrowRight":
+                snakeHead.setDirection(EDirection.Right);
+                break;
+            case "ArrowUp":
+                snakeHead.setDirection(EDirection.Up);
+                break;
+            case "ArrowDown":
+                snakeHead.setDirection(EDirection.Down);
+                break;
+            case " ":
+                addLogText("Space");
+                break;
+        }
+    }
+
+    function setMousePos(aEvent) {
+        const bounds = cvs.getBoundingClientRect();
+        mousePos.x = aEvent.clientX - bounds.left;
+        mousePos.y = aEvent.clientY - bounds.top;
+    }
+
+    function cvsMouseMove(aEvent) {
+        // Mouse move over canvas
+        setMousePos(aEvent);
+    }
+
+    function cvsClick(aEvent) {
+        // Mouse click in canvas
+
+    }
+
+
+    //------------------------------------------------------------------------------------------------------------------
+    //------ Main Code
+    //------------------------------------------------------------------------------------------------------------------
+    imgSheet.addEventListener("load", loadGame);
+    imgSheet.src = "SpriteSheet_Snake.png";
+    document.addEventListener("keydown", cvsKeydown);
+    document.addEventListener("mousemove", cvsMouseMove);
+    document.addEventListener("click", cvsClick);
+    document.addEventListener('contextmenu', aEvent => aEvent.preventDefault());
+
+</script>
+
+</body>
+</html>
