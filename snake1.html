@@ -134,6 +134,8 @@
             }
         }
     } //End of class TSnakeTail
+
+
     //------------------------------------------------------------------------------------------------------------------
     //------ Function and Events
     //------------------------------------------------------------------------------------------------------------------
@@ -171,7 +173,7 @@
         drawGame();
     }
 
-
+// drawgame
     function drawGame() {
         snakeHead.move();
         snakeTail.move();
@@ -206,7 +208,7 @@
                 break;
         }
     }
-
+// hvettafaen
     function setMousePos(aEvent) {
         const bounds = cvs.getBoundingClientRect();
         mousePos.x = aEvent.clientX - bounds.left;
